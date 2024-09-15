@@ -654,6 +654,10 @@ class CarController {
 
 All Tests was successfull. 
 ![Vehicle Unit Test](images/5_Vehicle_UnitTesting.png)
+
+`updateCar()` method was also added, which is used for testing for Update.
+![Vehicle Unit Test Update](images/5_Vehicle_UnitTesting_UpdateCar.png)
+
 ```java
 package com.udacity.vehicles.api;
 
@@ -663,9 +667,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -784,6 +786,30 @@ public class CarControllerTest {
                 .andExpect(jsonPath("$.details.manufacturer.name", is("Chevrolet")))
                 .andExpect(jsonPath("$.condition", is("USED")));
         verify(carService,times(1)).findById(1L);
+    }
+
+    @Test
+    public void updateCar()throws  Exception{
+        /**
+         * Run an Update Test, change USED to NEW
+         */
+        // Get the original car and update its condition to NEW
+        Car updatedCar = getCar();
+        updatedCar.setCondition(Condition.NEW);
+
+
+        mvc.perform(put("/cars/1")
+                .content(json.write(updatedCar).getJson())// Send the updated car in the request body
+                .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        //Assert: Verify that the save method was called with the updated car
+        //Note: save was updated in carService.java
+        verify(carService,times(1)).save(any());
+
+
+
     }
 
     /**
@@ -907,7 +933,31 @@ public class SwaggerConfig {
 
 
 * **PUT**:
+
+In CarService.java, `save(Car car)` method, I added This line `carToBeUpdated.setCondition(car.getCondition());` for this to be possible.
+
+```java
+public Car save(Car car) {
+        /**
+         * I Added Condition so that conditions can be updated.
+         */
+        if (car.getId() != null) {
+            return repository.findById(car.getId())
+                    .map(carToBeUpdated -> {
+                        carToBeUpdated.setDetails(car.getDetails());
+                        carToBeUpdated.setLocation(car.getLocation());
+                        carToBeUpdated.setCondition(car.getCondition());
+                        return repository.save(carToBeUpdated);
+                    }).orElseThrow(CarNotFoundException::new);
+        }
+
+        return repository.save(car);
+    }
+
+```
+Changed `condition` to `"NEW"`
 ![Swagger PUT ID 1](images/12_Swagger_PUT_1.png)
+Change Reflected below:
 ![Swagger PUT ID 1 part 2](images/13_Swagger_PUT_1_second.png)
 
 * **DELETE**:
